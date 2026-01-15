@@ -1,93 +1,64 @@
-import pygame
-import random
-import sys
+import streamlit as st
 
-# Initialisierung
-pygame.init()
-WIDTH, HEIGHT = 400, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Flappy Bird")
+# Spielfeldgröße
+WIDTH = 10
+HEIGHT = 6
 
-clock = pygame.time.Clock()
-font = pygame.font.SysFont(None, 40)
+# Spielzustand speichern
+if "x" not in st.session_state:
+    st.session_state.x = 0
+    st.session_state.y = HEIGHT - 1
+    st.session_state.won = False
 
-# Farben
-WHITE = (255, 255, 255)
-GREEN = (0, 200, 0)
-BLUE = (0, 150, 255)
+x = st.session_state.x
+y = st.session_state.y
 
-# Vogel
-bird_x = 80
-bird_y = HEIGHT // 2
-bird_radius = 15
-gravity = 0.5
-bird_movement = 0
-jump_strength = -8
+goal_x = WIDTH - 1
+goal_y = HEIGHT - 1
 
-# Röhren
-pipe_width = 60
-pipe_gap = 150
-pipe_speed = 3
-pipes = []
+st.title("🕹️ Jump and Run – Streamlit")
 
-def create_pipe():
-    height = random.randint(100, 400)
-    top = pygame.Rect(WIDTH, 0, pipe_width, height)
-    bottom = pygame.Rect(WIDTH, height + pipe_gap, pipe_width, HEIGHT)
-    return top, bottom
+st.write("Steuerung: Links / Rechts / Springen")
 
-pipes.extend(create_pipe())
+# Steuerungsbuttons
+col1, col2, col3 = st.columns(3)
 
-score = 0
+with col1:
+    if st.button("⬅️ Links") and x > 0:
+        x -= 1
 
-def draw_text(text, x, y):
-    img = font.render(text, True, WHITE)
-    screen.blit(img, (x, y))
+with col2:
+    if st.button("⬆️ Springen") and y > 0:
+        y -= 1
 
-# Spielschleife
-running = True
-while running:
-    clock.tick(60)
-    screen.fill(BLUE)
+with col3:
+    if st.button("➡️ Rechts") and x < WIDTH - 1:
+        x += 1
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                bird_movement = jump_strength
+# Schwerkraft
+if y < HEIGHT - 1:
+    y += 1
 
-    # Vogel Physik
-    bird_movement += gravity
-    bird_y += bird_movement
+# Gewonnen?
+if x == goal_x and y == goal_y:
+    st.session_state.won = True
 
-    bird = pygame.Rect(bird_x - bird_radius, bird_y - bird_radius,
-                       bird_radius * 2, bird_radius * 2)
+# Zustand speichern
+st.session_state.x = x
+st.session_state.y = y
 
-    pygame.draw.circle(screen, WHITE, (bird_x, int(bird_y)), bird_radius)
+# Spielfeld anzeigen
+for row in range(HEIGHT):
+    line = ""
+    for col in range(WIDTH):
+        if col == x and row == y:
+            line += "🧍"
+        elif col == goal_x and row == goal_y:
+            line += "🏁"
+        else:
+            line += "⬜"
+    st.write(line)
 
-    # Röhren bewegen
-    for pipe in pipes:
-        pipe.x -= pipe_speed
-        pygame.draw.rect(screen, GREEN, pipe)
+if st.session_state.won:
+    st.success("🎉 GEWONNEN!")
 
-    # Neue Röhren
-    if pipes[0].x < -pipe_width:
-        pipes.pop(0)
-        pipes.pop(0)
-        pipes.extend(create_pipe())
-        score += 1
-
-    # Kollision
-    for pipe in pipes:
-        if bird.colliderect(pipe):
-            running = False
-
-    if bird_y < 0 or bird_y > HEIGHT:
-        running = False
-
-    draw_text(f"Score: {score}", 10, 10)
-    pygame.display.update()
-
-pygame.quit()
-sys.exit()
